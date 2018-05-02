@@ -1,4 +1,5 @@
 #include "mbed.h"
+#include "cs5490.h"
 
 DigitalOut led(LED1);
 
