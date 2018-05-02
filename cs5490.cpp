@@ -117,32 +117,27 @@ void CS5490::getReg() {
   buf_pointer = 0;
 }
 
-void CS5490::printMessage(uint8_t value) {
-  printf("[CB MESSAGE] %d\r\n", value);
+void CS5490::printMessage() {
+  printf("[%d] 0x%02X%02X%02X\r\n", counter, data[2], data[1], data[0]);
 }
 
-void CS5490::simpleCallback(void* object, uint8_t value) {
+void CS5490::onMessageReceivedWrapper(void* object) {
   CS5490* me = (CS5490*) object;
-  me->printMessage(value);
-}
-
-void CS5490::testCallback(void (*cb)(void *, uint8_t), void *obj) {
-  cb(obj, 42);
+  me->printMessage();
 }
 
 void CS5490::onMessageReceived() {
 }
 
 void CS5490::onByteReceived() {
-  readByte(_uart.getc());
+  readByte(_uart.getc(), CS5490::onMessageReceivedWrapper);
 }
 
-void CS5490::readByte(uint8_t byte) {
+void CS5490::readByte(uint8_t byte, void (*cb)(void *)) {
   data[buf_pointer] = byte;
   if (buf_pointer == 2) {
     // callback to parse data
-    printf("[%d] 0x%02X%02X%02X\r\n", counter, data[2], data[1], data[0]);
-    testCallback(CS5490::simpleCallback, this);
+    cb(this);
     counter++;
     return;
   }
