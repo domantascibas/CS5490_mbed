@@ -1,4 +1,6 @@
 .mbed
 *.py
 *.pyc
+*.sh
 BUILD/
+custom_targets.json
