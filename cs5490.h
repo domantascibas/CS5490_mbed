@@ -3,25 +3,41 @@
 
 #include "mbed.h"
 
+typedef enum {
+  DISABLED,
+  ENABLED
+} prot_t;
+
+typedef struct
+{
+  uint8_t page;
+  uint8_t address;
+  prot_t checksum;
+  uint32_t default_val;
+} CsRegister_t;
+
 class CS5490 {
   public:
-    CS5490(PinName CS_TX, PinName CS_RX, PinName CS_RST, PinName CS_DIO);
+    CS5490(PinName tx, PinName rx, PinName reset, PinName digitalInOut);
 
-    void initialize();
-    void write();
+    void init();
 
     /* INSTRUCTIONS */
-    void reset();
-    void standby();
-    void wakeup();
 
     /* CALIBRATION */
 
-    /* MEASURE */
-    
+    /* MEASUREMENTS */
+
 
   protected:
-    void read();
+    Serial _uart;
+    DigitalOut _reset;
+    DigitalInOut _digitalInOut;
+    void readByte();
+    void readRegister(CsRegister_t);
+    void writeRegister(CsRegister_t, uint8_t);
+    void sendInstruction(uint8_t);
+    void selectPage(uint8_t);
 };
 
 #endif
