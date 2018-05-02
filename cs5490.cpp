@@ -93,9 +93,10 @@ static const CsRegister_t V_CHANNEL_Z_CROSS_THRESHOLD = {18, 58, ENABLED, 0x1000
 static const CsRegister_t LINE_CYCLE_COUNT = {18, 62, DISABLED, 0x000064};
 static const CsRegister_t I_CHANNEL_GAIN_CALIBRATION_SCALE = {18, 63, ENABLED, 0x4CCCCC};
 
+uint16_t counter = 0;
+
 CS5490::CS5490(PinName tx, PinName rx, PinName reset, PinName digitalInOut) :
   _uart(tx, rx, CS_SERIAL_BAUD), _reset(reset), _digitalInOut(digitalInOut) {
-
 }
 
 void CS5490::init() {
@@ -103,20 +104,55 @@ void CS5490::init() {
   wait(0.5);
   _reset = 1;
 
-  _uart.attach(callback(this, &CS5490::readByte));
-
   wait(0.5);
   sendInstruction(CONTROLS_WAKEUP);
   wait(0.5);
   sendInstruction(CONTROLS_CONTINUOUS_CONVERSION);
+
+  _uart.attach(callback(this, &CS5490::onByteReceived));
 }
 
-void CS5490::readByte() {
+void CS5490::getReg() {
+  readRegister(CONFIGURATION_0);
+  buf_pointer = 0;
+}
 
+void CS5490::printMessage(uint8_t value) {
+  printf("[CB MESSAGE] %d\r\n", value);
+}
+
+void CS5490::simpleCallback(void* object, uint8_t value) {
+  CS5490* me = (CS5490*) object;
+  me->printMessage(value);
+}
+
+void CS5490::testCallback(void (*cb)(void *, uint8_t), void *obj) {
+  cb(obj, 42);
+}
+
+void CS5490::onMessageReceived() {
+}
+
+void CS5490::onByteReceived() {
+  readByte(_uart.getc());
+}
+
+void CS5490::readByte(uint8_t byte) {
+  data[buf_pointer] = byte;
+  if (buf_pointer == 2) {
+    // callback to parse data
+    printf("[%d] 0x%02X%02X%02X\r\n", counter, data[2], data[1], data[0]);
+    testCallback(CS5490::simpleCallback, this);
+    counter++;
+    return;
+  }
+  buf_pointer++;
 }
 
 void CS5490::readRegister(CsRegister_t reg) {
-  
+  // printf("[read] 0x%X 0x%X\r\n", PREFIX_PAGE | reg.page, PREFIX_READ | reg.address);
+  _uart.putc(PREFIX_PAGE | reg.page);
+  _uart.putc(PREFIX_READ | reg.address);
 }
 
 void CS5490::writeRegister(CsRegister_t reg, uint8_t data) {
@@ -124,7 +160,8 @@ void CS5490::writeRegister(CsRegister_t reg, uint8_t data) {
 }
 
 void CS5490::sendInstruction(uint8_t instruction) {
-  uart.putc(PREFIX_INSTRUCTION | instruction);
+  // printf("[send instruction] 0x%X\r\n", PREFIX_INSTRUCTION | instruction);
+  _uart.putc(PREFIX_INSTRUCTION | instruction);
 }
 
 void CS5490::selectPage(uint8_t page) {
