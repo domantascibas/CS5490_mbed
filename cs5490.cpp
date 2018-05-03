@@ -87,14 +87,8 @@ static const CsRegister_t V_CHANNEL_Z_CROSS_THRESHOLD = {18, 58, ENABLED, 0x1000
 static const CsRegister_t LINE_CYCLE_COUNT = {18, 62, DISABLED, 0x000064};
 static const CsRegister_t I_CHANNEL_GAIN_CALIBRATION_SCALE = {18, 63, ENABLED, 0x4CCCCC};
 
-uint16_t counter = 0;
-
 CS5490::CS5490(PinName tx, PinName rx, PinName reset, PinName digitalInOut) :
   _uart(tx, rx, CS_SERIAL_BAUD), _reset(reset), _digitalInOut(digitalInOut) {
-    last_command = NONE_CMD;
-    busy = false;
-    buf_pointer = 0;
-    read_pointer = 0;
 }
 
 void CS5490::init() {
@@ -106,63 +100,24 @@ void CS5490::init() {
   sendInstruction(CONTROLS_WAKEUP);
   wait(0.5);
   sendInstruction(CONTROLS_CONTINUOUS_CONVERSION);
-
-  // _uart.attach(callback(this, &CS5490::onByteReceived));
 }
 
 bool CS5490::read() {
-  // readRegister(RMS_VOLTAGE);
-  // while()
   if(readRegister(RMS_VOLTAGE)) {
-    printf("[%d] 0x%02X%02X%02X\r\n", counter, data[2], data[1], data[0]);
+    printf("0x%02X%02X%02X\r\n", data[2], data[1], data[0]);
   }
   return true;
 }
-
-// void CS5490::printMessage() {
-//   printf("[%d] 0x%02X%02X%02X\r\n", counter, data[2], data[1], data[0]);
-// }
-
-// void CS5490::onMessageReceived(void* object) {
-//   CS5490* myself = (CS5490*) object;
-//   myself->printMessage();
-//   counter++;
-// }
 
 bool CS5490::readMessage() {
   int8_t RESPONSE_LENGTH = BUFFER_SIZE;
   int8_t i;
-
-  // for(i=0; i<RESPONSE_LENGTH; i++) {
-  //   data[i] = _uart.getc();
-  //   printf("[0x%02X]\r\n", data[i]);
-  // }
-
   for(i=RESPONSE_LENGTH-1; i>=0; --i) {
     data[i] = _uart.getc();
     printf("[%d] 0x%02X\r\n", i, data[i]);
   }
-  // counter++;
   return true;
 }
-
-// void CS5490::onByteReceived() {
-//   data[buf_pointer % BUFFER_SIZE] = _uart.getc();
-//   buf_pointer++;
-//   if (buf_pointer >= BUFFER_SIZE) {
-//     buf_pointer = 0;
-//   }
-// }
-
-// void CS5490::readByte(uint8_t byte, void (*callback)(void *)) {
-//   data[buf_pointer] = byte;
-//   if (buf_pointer == 2) {
-//     callback(this);
-//     busy = false;
-//     return;
-//   }
-//   buf_pointer++;
-// }
 
 bool CS5490::readRegister(CsRegister_t reg) {
   bool good_message = false;

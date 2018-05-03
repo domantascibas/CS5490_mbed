@@ -46,22 +46,15 @@ class CS5490 {
     float instant_power;
     float avg_power;
 
-    bool busy;
-
-    last_cmd_t last_command;
-    uint8_t buf_pointer;
-    uint8_t read_pointer;
     uint8_t data[BUFFER_SIZE];
     Serial _uart;
     DigitalOut _reset;
     DigitalInOut _digitalInOut;
     bool readMessage();
-    void readByte(uint8_t, void (*)(void *));
     bool readRegister(CsRegister_t);
     void writeRegister(CsRegister_t, uint8_t);
     void sendInstruction(uint8_t);
     void printMessage();
-    static void onMessageReceived(void *);
 };
 
 #endif
