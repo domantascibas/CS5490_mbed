@@ -104,7 +104,7 @@ void CS5490::init() {
 
 bool CS5490::read() {
   if(readRegister(RMS_VOLTAGE)) {
-    printf("0x%02X%02X%02X\r\n", data[2], data[1], data[0]);
+    printf("0x%02X%02X%02X\r\n", data[0], data[1], data[2]);
   }
   return true;
 }
@@ -112,16 +112,16 @@ bool CS5490::read() {
 bool CS5490::readMessage() {
   int8_t RESPONSE_LENGTH = BUFFER_SIZE;
   int8_t i;
-  for(i=RESPONSE_LENGTH-1; i>=0; --i) {
+  for(i=0; i<0; i++) {
     data[i] = _uart.getc();
-    printf("[%d] 0x%02X\r\n", i, data[i]);
+    // printf("[%d] 0x%02X\r\n", i, data[i]);
   }
   return true;
 }
 
 bool CS5490::readRegister(CsRegister_t reg) {
   bool good_message = false;
-  printf("[read] 0x%X 0x%X\r\n", COMMAND_PAGE_SELECT | reg.page, COMMAND_READ_REGISTER | reg.address);
+  // printf("[read] 0x%X 0x%X\r\n", COMMAND_PAGE_SELECT | reg.page, COMMAND_READ_REGISTER | reg.address);
   _uart.putc(COMMAND_PAGE_SELECT | reg.page);
   _uart.putc(COMMAND_READ_REGISTER | reg.address);
   good_message = readMessage();
