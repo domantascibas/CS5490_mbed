@@ -3,12 +3,6 @@
 
 static const uint16_t CS_SERIAL_BAUD = 600;
 
-/* COMMAND PREFIXES */
-static const uint8_t PREFIX_READ = 0x00;
-static const uint8_t PREFIX_WRITE = 0x40;
-static const uint8_t PREFIX_PAGE = 0x80;
-static const uint8_t PREFIX_INSTRUCTION = 0xC0;
-
 /* COMMANDS */
 static const uint8_t COMMAND_READ_REGISTER = 0x00;
 static const uint8_t COMMAND_WRITE_REGISTER = 0x40;
@@ -97,6 +91,10 @@ uint16_t counter = 0;
 
 CS5490::CS5490(PinName tx, PinName rx, PinName reset, PinName digitalInOut) :
   _uart(tx, rx, CS_SERIAL_BAUD), _reset(reset), _digitalInOut(digitalInOut) {
+    last_command = NONE_CMD;
+    busy = false;
+    buf_pointer = 0;
+    read_pointer = 0;
 }
 
 void CS5490::init() {
@@ -109,56 +107,79 @@ void CS5490::init() {
   wait(0.5);
   sendInstruction(CONTROLS_CONTINUOUS_CONVERSION);
 
-  _uart.attach(callback(this, &CS5490::onByteReceived));
+  // _uart.attach(callback(this, &CS5490::onByteReceived));
 }
 
-void CS5490::getReg() {
-  readRegister(CONFIGURATION_0);
-  buf_pointer = 0;
-}
-
-void CS5490::printMessage() {
-  printf("[%d] 0x%02X%02X%02X\r\n", counter, data[2], data[1], data[0]);
-}
-
-void CS5490::onMessageReceivedWrapper(void* object) {
-  CS5490* me = (CS5490*) object;
-  me->printMessage();
-}
-
-void CS5490::onMessageReceived() {
-}
-
-void CS5490::onByteReceived() {
-  readByte(_uart.getc(), CS5490::onMessageReceivedWrapper);
-}
-
-void CS5490::readByte(uint8_t byte, void (*cb)(void *)) {
-  data[buf_pointer] = byte;
-  if (buf_pointer == 2) {
-    // callback to parse data
-    cb(this);
-    counter++;
-    return;
+bool CS5490::read() {
+  // readRegister(RMS_VOLTAGE);
+  // while()
+  if(readRegister(RMS_VOLTAGE)) {
+    printf("[%d] 0x%02X%02X%02X\r\n", counter, data[2], data[1], data[0]);
   }
-  buf_pointer++;
+  return true;
 }
 
-void CS5490::readRegister(CsRegister_t reg) {
-  // printf("[read] 0x%X 0x%X\r\n", PREFIX_PAGE | reg.page, PREFIX_READ | reg.address);
-  _uart.putc(PREFIX_PAGE | reg.page);
-  _uart.putc(PREFIX_READ | reg.address);
+// void CS5490::printMessage() {
+//   printf("[%d] 0x%02X%02X%02X\r\n", counter, data[2], data[1], data[0]);
+// }
+
+// void CS5490::onMessageReceived(void* object) {
+//   CS5490* myself = (CS5490*) object;
+//   myself->printMessage();
+//   counter++;
+// }
+
+bool CS5490::readMessage() {
+  int8_t RESPONSE_LENGTH = BUFFER_SIZE;
+  int8_t i;
+
+  // for(i=0; i<RESPONSE_LENGTH; i++) {
+  //   data[i] = _uart.getc();
+  //   printf("[0x%02X]\r\n", data[i]);
+  // }
+
+  for(i=RESPONSE_LENGTH-1; i>=0; --i) {
+    data[i] = _uart.getc();
+    printf("[%d] 0x%02X\r\n", i, data[i]);
+  }
+  // counter++;
+  return true;
+}
+
+// void CS5490::onByteReceived() {
+//   data[buf_pointer % BUFFER_SIZE] = _uart.getc();
+//   buf_pointer++;
+//   if (buf_pointer >= BUFFER_SIZE) {
+//     buf_pointer = 0;
+//   }
+// }
+
+// void CS5490::readByte(uint8_t byte, void (*callback)(void *)) {
+//   data[buf_pointer] = byte;
+//   if (buf_pointer == 2) {
+//     callback(this);
+//     busy = false;
+//     return;
+//   }
+//   buf_pointer++;
+// }
+
+bool CS5490::readRegister(CsRegister_t reg) {
+  bool good_message = false;
+  if(!busy) {
+    printf("[read] 0x%X 0x%X\r\n", COMMAND_PAGE_SELECT | reg.page, COMMAND_READ_REGISTER | reg.address);
+    _uart.putc(COMMAND_PAGE_SELECT | reg.page);
+    _uart.putc(COMMAND_READ_REGISTER | reg.address);
+    good_message = readMessage();
+    if(good_message) return true;
+  }
+  return false;
 }
 
 void CS5490::writeRegister(CsRegister_t reg, uint8_t data) {
-
 }
 
 void CS5490::sendInstruction(uint8_t instruction) {
-  // printf("[send instruction] 0x%X\r\n", PREFIX_INSTRUCTION | instruction);
-  _uart.putc(PREFIX_INSTRUCTION | instruction);
-}
-
-void CS5490::selectPage(uint8_t page) {
-
+  printf("[instruction] 0x%X\r\n", COMMAND_INSTRUCTION | instruction);
+  _uart.putc(COMMAND_INSTRUCTION | instruction);
 }

@@ -4,6 +4,14 @@
 #include "mbed.h"
 
 typedef enum {
+  READ_CMD,
+  WRITE_CMD,
+  PAGE_SELECT_CMD,
+  INSTRUCTION_CMD,
+  NONE_CMD
+} last_cmd_t;
+
+typedef enum {
   DISABLED,
   ENABLED
 } prot_t;
@@ -16,7 +24,7 @@ typedef struct
   uint32_t default_val;
 } CsRegister_t;
 
-static const uint8_t BUF_LENGTH = 3;
+static const uint8_t BUFFER_SIZE = 3;
 
 class CS5490 {
   public:
@@ -29,23 +37,31 @@ class CS5490 {
     /* CALIBRATION */
 
     /* MEASUREMENTS */
-    void getReg();
+    bool read();
+    void getPeakV();
 
   protected:
+    float rms_voltage;
+    float rms_current;
+    float instant_power;
+    float avg_power;
+
+    bool busy;
+
+    last_cmd_t last_command;
     uint8_t buf_pointer;
-    uint8_t data[BUF_LENGTH];
+    uint8_t read_pointer;
+    uint8_t data[BUFFER_SIZE];
     Serial _uart;
     DigitalOut _reset;
     DigitalInOut _digitalInOut;
-    void onMessageReceived();
-    void onByteReceived();
+    bool readMessage();
     void readByte(uint8_t, void (*)(void *));
-    void readRegister(CsRegister_t);
+    bool readRegister(CsRegister_t);
     void writeRegister(CsRegister_t, uint8_t);
     void sendInstruction(uint8_t);
-    void selectPage(uint8_t);
     void printMessage();
-    static void onMessageReceivedWrapper(void *);
+    static void onMessageReceived(void *);
 };
 
 #endif
