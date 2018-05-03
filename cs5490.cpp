@@ -121,13 +121,11 @@ bool CS5490::readMessage() {
 
 bool CS5490::readRegister(CsRegister_t reg) {
   bool good_message = false;
-  if(!busy) {
-    printf("[read] 0x%X 0x%X\r\n", COMMAND_PAGE_SELECT | reg.page, COMMAND_READ_REGISTER | reg.address);
-    _uart.putc(COMMAND_PAGE_SELECT | reg.page);
-    _uart.putc(COMMAND_READ_REGISTER | reg.address);
-    good_message = readMessage();
-    if(good_message) return true;
-  }
+  printf("[read] 0x%X 0x%X\r\n", COMMAND_PAGE_SELECT | reg.page, COMMAND_READ_REGISTER | reg.address);
+  _uart.putc(COMMAND_PAGE_SELECT | reg.page);
+  _uart.putc(COMMAND_READ_REGISTER | reg.address);
+  good_message = readMessage();
+  if(good_message) return true;
   return false;
 }
 
