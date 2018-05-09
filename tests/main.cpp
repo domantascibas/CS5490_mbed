@@ -11,6 +11,8 @@ void init(void) {
   printf("\r\nloading...\r\n");
 }
 
+float power = 0.0;
+
 // void readV(void) {
 // }
 
@@ -21,7 +23,7 @@ int main(void) {
   while(1) {
     led = !led;
     wait(0.5);
-    cs5490.read();
+    power = cs5490.getPower();
   }
   return 0;
 }
