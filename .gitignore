@@ -3,4 +3,5 @@
 *.pyc
 *.sh
 BUILD/
+inc/
 custom_targets.json
