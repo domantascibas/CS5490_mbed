@@ -102,17 +102,20 @@ void CS5490::init() {
   sendInstruction(CONTROLS_CONTINUOUS_CONVERSION);
 }
 
-bool CS5490::read() {
-  if(readRegister(RMS_VOLTAGE)) {
+float CS5490::getPower() {
+  float result;
+  if(readRegister(AVERAGE_ACTIVE_POWER)) {
     printf("0x%02X%02X%02X\r\n", data[0], data[1], data[2]);
+    result = toFloat(0,0);
+    return result;
   }
-  return true;
+  return 0.0;
 }
 
 bool CS5490::readMessage() {
-  int8_t RESPONSE_LENGTH = BUFFER_SIZE;
-  int8_t i;
-  for(i=0; i<0; i++) {
+  // TODO: set timeout, and return false if timeout
+  uint8_t i = 0;
+  for(i=0; i<sizeof(data); i++) {
     data[i] = _uart.getc();
     // printf("[%d] 0x%02X\r\n", i, data[i]);
   }
@@ -120,19 +123,53 @@ bool CS5490::readMessage() {
 }
 
 bool CS5490::readRegister(CsRegister_t reg) {
-  bool good_message = false;
   // printf("[read] 0x%X 0x%X\r\n", COMMAND_PAGE_SELECT | reg.page, COMMAND_READ_REGISTER | reg.address);
   _uart.putc(COMMAND_PAGE_SELECT | reg.page);
   _uart.putc(COMMAND_READ_REGISTER | reg.address);
-  good_message = readMessage();
-  if(good_message) return true;
+  if (readMessage()) return true;
   return false;
-}
-
-void CS5490::writeRegister(CsRegister_t reg, uint8_t data) {
 }
 
 void CS5490::sendInstruction(uint8_t instruction) {
   printf("[instruction] 0x%X\r\n", COMMAND_INSTRUCTION | instruction);
   _uart.putc(COMMAND_INSTRUCTION | instruction);
+}
+
+void CS5490::writeRegister(CsRegister_t reg, uint8_t data) {
+}
+
+float CS5490::toFloat(uint8_t lsbPower, uint8_t msbOption) {
+  uint8_t i = 0;
+  uint8_t msb_mask = 0x80;
+  uint32_t buffer_mask = 0xFF000000;
+  uint32_t buffer = 0;
+  bool msb;
+  float output;
+
+  for(i=0; i<sizeof(data); i++) {
+    buffer |= data[i] << ((sizeof(data)-1) - i) * 8;
+    // printf("[%d 0x%02X] 0x%lX\r\n", ((sizeof(data) - 1) - i), data[i] << ((sizeof(data) - 1) - i) * 8, buffer);
+  }
+
+  // TODO: add cases for msbUnsigned, and msbNull
+  // TODO: add lsbPower variable
+  msb = data[0] & msb_mask;
+  // printf("0x%lX\r\n", buffer);
+  // output = (float)buffer;
+  // output /= (pow(2, 24));
+
+  if(msb) {
+    buffer = ~buffer;
+    printf("0x%lX\r\n", buffer);
+    buffer &= ~(buffer_mask);
+    printf("0x%lX\r\n", buffer);
+    output = (float)buffer + 1.0;
+    printf("%.2f\r\n", output);
+    output /= -pow(2, 23);
+  } else {
+    output = (float)buffer;
+    output /= (pow(2, 23)-1.0);
+  }
+  printf("%f voltage\r\n", output);
+  return output;
 }

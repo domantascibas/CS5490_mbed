@@ -3,13 +3,13 @@
 
 #include "mbed.h"
 
-typedef enum {
-  READ_CMD,
-  WRITE_CMD,
-  PAGE_SELECT_CMD,
-  INSTRUCTION_CMD,
-  NONE_CMD
-} last_cmd_t;
+// typedef enum {
+//   READ_CMD,
+//   WRITE_CMD,
+//   PAGE_SELECT_CMD,
+//   INSTRUCTION_CMD,
+//   NONE_CMD
+// } last_cmd_t;
 
 typedef enum {
   DISABLED,
@@ -37,15 +37,9 @@ class CS5490 {
     /* CALIBRATION */
 
     /* MEASUREMENTS */
-    bool read();
-    void getPeakV();
+    float getPower();
 
   protected:
-    float rms_voltage;
-    float rms_current;
-    float instant_power;
-    float avg_power;
-
     uint8_t data[BUFFER_SIZE];
     Serial _uart;
     DigitalOut _reset;
@@ -55,6 +49,7 @@ class CS5490 {
     void writeRegister(CsRegister_t, uint8_t);
     void sendInstruction(uint8_t);
     void printMessage();
+    float toFloat(uint8_t, uint8_t);
 };
 
 #endif
