@@ -41,7 +41,7 @@ class CS5490 {
 
   protected:
     uint8_t data[BUFFER_SIZE];
-    Serial _uart;
+    RawSerial _uart;
     DigitalOut _reset;
     DigitalInOut _digitalInOut;
     bool readMessage();
